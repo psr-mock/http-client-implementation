@@ -1,0 +1,45 @@
+{
+    "name": "psr-mock/http-client-implementation",
+    "description": "Svelte PSR-18 HTTP Client implementation provider for use in unit testing.",
+    "license": "MIT",
+    "type": "library",
+    "keywords": [
+        "PSR-18",
+        "Testing",
+        "Mocked"
+    ],
+    "authors": [
+        {
+            "name": "Evan Sims",
+            "email": "hello@evansims.com",
+            "homepage": "https://evansims.com/"
+        }
+    ],
+    "homepage": "https://github.com/php-fig/http-client",
+    "require": {
+        "php": "^8.0",
+        "psr/http-client": "^1.0",
+        "psr/http-message": "^1.0"
+    },
+    "provide": {
+        "psr/http-client-implementation": "^1.0"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {
+            "PsrMock\\Psr18\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PsrMock\\Psr18\\Tests\\": "tests"
+        }
+    },
+    "config": {
+        "allow-plugins": {},
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    }
+}
