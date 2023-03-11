@@ -1,4 +1,4 @@
-A svelte PSR-18 testing component. This package provides a `psr/http-client-implementation` specifically tailored toward making standards-based testing easier for library authors. It's PSR-18, with none of the saturated fat!
+Lightweight PSR-18 HTTP Client mocking implementation tailored to simplify testing. This library mocks HTTP requests and is not intended for use in production.
 
 ## Requirements
 
