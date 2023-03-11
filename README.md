@@ -7,5 +7,5 @@ A svelte PSR-18 testing component. An `psr/http-client-implementation` implement
 ## Installation
 
 ```bash
-composer require --dev php-http/client-implementation
+composer require --dev psr-mock/http-client-implementation
 ```
