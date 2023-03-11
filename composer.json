@@ -1,6 +1,6 @@
 {
     "name": "psr-mock/http-client-implementation",
-    "description": "Svelte PSR-18 HTTP Client implementation provider for use in unit testing.",
+    "description": "Lightweight PSR-18 HTTP Client mocking implementation tailored to simplify testing.",
     "license": "MIT",
     "type": "library",
     "keywords": [
