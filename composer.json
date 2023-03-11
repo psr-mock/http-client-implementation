@@ -1,12 +1,14 @@
 {
     "name": "psr-mock/http-client-implementation",
-    "description": "Lightweight PSR-18 HTTP Client mocking implementation tailored to simplify testing.",
+    "description": "Lightweight PSR-18 HTTP Client implementation provider tailored to simplify mocked testing.",
     "license": "MIT",
     "type": "library",
     "keywords": [
-        "PSR-18",
-        "Testing",
-        "Mocked"
+        "psr",
+        "http-client-implementation",
+        "psr-18",
+        "testing",
+        "mocking"
     ],
     "authors": [
         {
@@ -15,7 +17,7 @@
             "homepage": "https://evansims.com/"
         }
     ],
-    "homepage": "https://github.com/php-fig/http-client",
+    "homepage": "https://github.com/psr-mock/http-client-implementation",
     "require": {
         "php": "^8.0",
         "psr/http-client": "^1.0",
