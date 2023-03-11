@@ -9,3 +9,7 @@ Lightweight PSR-18 HTTP Client mocking implementation tailored to simplify testi
 ```bash
 composer require --dev psr-mock/http-client-implementation
 ```
+
+---
+
+This library is not produced or endorsed by, or otherwise affiliated with, the PHP-FIG.
