@@ -78,7 +78,7 @@
         "mutate": "@php ./vendor/bin/infection --test-framework=pest --show-mutations",
         "phpcs:fix": "@php vendor/bin/php-cs-fixer fix src",
         "phpcs": "@php vendor/bin/php-cs-fixer fix src --dry-run --diff",
-        "phpstan": "@php vendor/bin/phpstan analyse",
+        "phpstan": "@php vendor/bin/phpstan analyze",
         "pint:fix": "@php vendor/bin/pint",
         "pint": "@php vendor/bin/pint --test",
         "psalm:fix": "@php vendor/bin/psalter --issues=all",
