@@ -5,90 +5,139 @@ declare(strict_types=1);
 namespace PsrMock\Psr18;
 
 use Exception;
-use Psr\Http\Message\{RequestInterface, ResponseInterface};
-use PsrMock\Psr18\Contracts\{ClientContract, ExchangeContract, HistoryContract};
+use Psr\Http\Message\{RequestInterface, ResponseInterface, UriInterface};
+use PsrMock\Psr18\Contracts\ClientContract;
 
 final class Client implements ClientContract
 {
     /**
-     * @param array<ResponseInterface> $responses
-     * @param array<ResponseInterface> $queue
+     * @var array<int,array{request:RequestInterface,response:ResponseInterface,count:int,when:int}> $history
+     */
+    private array $history = [];
+    /**
+     * @var array<string,int> $counter
+     */
+    private array $counter = [];
+    /**
+     * @var array<string,int> $limits
+     */
+    private array $limits  = [];
+
+    private int $requestCount = 0;
+
+    /**
+     * @param array<string,ResponseInterface> $responses
      */
     public function __construct(
         private array $responses = [],
-        private array $queue = [],
+        private ?ResponseInterface $fallbackResponse = null,
+        private ?int $requestLimit = null
     ) {
-        $this->historyContract = new History();
     }
 
-    private function exchange(RequestInterface $request): ResponseInterface
+    public function setRequestLimit(?int $limit = null): void
     {
-        $method = $request->getMethod();
-        $url    = $request->getUri()->__toString();
-        $key    = $method . ' ' . $url;
-
-        if (isset($this->responses[$key])) {
-            return $this->responses[$key];
-        }
-
-        if ([] !== $this->queue) {
-            return array_shift($this->queue);
-        }
-
-        throw new Exception('No response found for ' . $key);
+        $this->requestLimit = $limit;
     }
 
-    private function record(ExchangeContract $exchangeContract): ResponseInterface
+    public function setFallbackResponse(ResponseInterface $response) : void
     {
-        $this->historyContract->add($exchangeContract);
-
-        return $exchangeContract->getResponse();
+        $this->fallbackResponse = $response;
     }
 
-    public function addResponse(string $method, string $url, ResponseInterface $response): void
+    /**
+     * Get the timeline of requests and responses.
+     *
+     * @return array<int,array{request:RequestInterface,response:ResponseInterface,count:int,when:int}>
+     */
+    public function getTimeline(): array
     {
-        $key                   = $method . ' ' . $url;
-        $this->responses[$key] = $response;
+        return $this->history;
     }
 
-    public function getHistory(): HistoryContract
-    {
-        return $this->historyContract;
-    }
-
-    public function getQueue(): array
-    {
-        return $this->queue;
-    }
-
+    /**
+     * Get the responses.
+     *
+     * @return array<string,ResponseInterface>
+     */
     public function getResponses(): array
     {
         return $this->responses;
     }
 
-    public function queueResponse(ResponseInterface $response): void
+    public function addResponse(string $method, UriInterface|string $url, ResponseInterface $response, ?int $times = null): void
     {
-        $this->queue[] = $response;
+        if ($url instanceof UriInterface) {
+            $url = (string) $url;
+        }
+
+        $key = strtoupper($method) . ' ' . $url;
+
+        $this->responses[$key] = $response;
+
+        if ($times !== null) {
+            $this->limits[$key] = $times;
+        }
+    }
+
+    public function addResponseByRequest(RequestInterface $request, ResponseInterface $response, ?int $times = null): void
+    {
+        $key = (string) $request->getMethod() . ' ' . (string) $request->getUri();
+
+        $this->responses[$key] = $response;
+
+        if ($times !== null) {
+            $this->limits[$key] = $times;
+        }
     }
 
     public function sendRequest(RequestInterface $request): ResponseInterface
     {
-        return $this->record(new Exchange($request, $this->exchange($request)));
+        $key = (string) $request->getMethod() . ' ' . (string) $request->getUri();
+
+        if ($this->requestLimit !== null && $this->requestCount >= $this->requestLimit) {
+            throw new Exception('Exceeded session request limit of ' . $this->requestLimit);
+        }
+
+        ++$this->requestCount;
+
+        if (isset($this->responses[$key])) {
+            $response = $this->responses[$key];
+
+            if ($response instanceof ResponseInterface) {
+                $this->counter[$key] ??= 0;
+
+                if (isset($this->limits[$key]) && $this->counter[$key] >= $this->limits[$key]) {
+                    throw new Exception('Exceeded request limit of ' . (string) $this->limits[$key] . ' for ' . $key);
+                }
+
+                $this->counter[$key] = (int) $this->counter[$key] + 1;
+                $this->history[] = ['request' => $request, 'response' => $response, 'count' => $this->counter[$key], 'when' => time()];
+
+                return $response;
+            }
+        }
+
+        if (isset($this->fallbackResponse)) {
+            return $this->fallbackResponse;
+        }
+
+        throw new Exception('No response found for ' . $key);
     }
 
-    public function setHistory(HistoryContract $historyContract): void
+    /**
+     * @param array<int,RequestInterface> $requests
+     *
+     * @return array<int,ResponseInterface>
+     */
+    public function sendRequests(array $requests): array
     {
-        $this->historyContract = $historyContract;
-    }
+        $responses = [];
 
-    public function setQueue(array $queue): void
-    {
-        $this->queue = $queue;
-    }
+        foreach ($requests as $request) {
+            $responses[] = $this->sendRequest($request);
+        }
 
-    public function setResponses(array $responses): void
-    {
-        $this->responses = $responses;
+        return $responses;
     }
-    private HistoryContract $historyContract;
 }

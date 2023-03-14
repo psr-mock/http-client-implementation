@@ -12,3 +12,4 @@ parameters:
     ignoreErrors:
 
     reportUnmatchedIgnoredErrors: true
+    treatPhpDocTypesAsCertain: false
