@@ -7,22 +7,25 @@ namespace PsrMock\Psr18;
 use Exception;
 use Psr\Http\Message\{RequestInterface, ResponseInterface, UriInterface};
 use PsrMock\Psr18\Contracts\ClientContract;
+use PsrMock\Psr18\Exceptions\{ClientQueueEmpty, ClientRequestLimitSurpassed, ClientRequestMissed, ClientTotalRequestLimitSurpassed};
 
 final class Client implements ClientContract
 {
     /**
      * @param array<string,ResponseInterface> $responses
-     * @param null|ResponseInterface $fallbackResponse
-     * @param null|int $requestLimit
+     * @param array<int,ResponseInterface>    $wildcardResponses
+     * @param null|ResponseInterface          $fallbackResponse
+     * @param null|int                        $requestLimit
      */
     public function __construct(
         private array $responses = [],
+        private array $wildcardResponses = [],
         private ?ResponseInterface $fallbackResponse = null,
         private ?int $requestLimit = null,
     ) {
     }
 
-    public function addResponse(string $method, UriInterface | string $url, ResponseInterface $response, ?int $times = null): void
+    public function addResponse(string $method, UriInterface | string $url, ResponseInterface $response, ?int $limit = null): void
     {
         if ($url instanceof UriInterface) {
             $url = (string) $url;
@@ -32,40 +35,40 @@ final class Client implements ClientContract
 
         $this->responses[$key] = $response;
 
-        if (null !== $times) {
-            $this->limits[$key] = $times;
+        if (null !== $limit) {
+            $this->limits[$key] = $limit;
         }
     }
 
-    public function addResponseByRequest(RequestInterface $request, ResponseInterface $response, ?int $times = null): void
+    public function addResponseByRequest(RequestInterface $request, ResponseInterface $response, ?int $limit = null): void
     {
         $key = (string) $request->getMethod() . ' ' . (string) $request->getUri();
 
         $this->responses[$key] = $response;
 
-        if (null !== $times) {
-            $this->limits[$key] = $times;
+        if (null !== $limit) {
+            $this->limits[$key] = $limit;
         }
     }
 
-    /**
-     * Get the responses.
-     *
-     * @return array<string,ResponseInterface>
-     */
+    public function addResponseWildcard(ResponseInterface $response): void
+    {
+        $this->wildcardResponses[] = $response;
+    }
+
     public function getResponses(): array
     {
         return $this->responses;
     }
 
-    /**
-     * Get the timeline of requests and responses.
-     *
-     * @return array<int,array{request:RequestInterface,response:ResponseInterface,count:int,when:int}>
-     */
     public function getTimeline(): array
     {
         return $this->history;
+    }
+
+    public function getWildcardResponses(): array
+    {
+        return $this->wildcardResponses;
     }
 
     public function sendRequest(RequestInterface $request): ResponseInterface
@@ -73,10 +76,22 @@ final class Client implements ClientContract
         $key = (string) $request->getMethod() . ' ' . (string) $request->getUri();
 
         if (null !== $this->requestLimit && $this->requestCount >= $this->requestLimit) {
-            throw new Exception('Exceeded session request limit of ' . $this->requestLimit);
+            throw new ClientTotalRequestLimitSurpassed($this->requestLimit);
         }
 
         ++$this->requestCount;
+
+        if (isset($this->wildcardResponses[$this->requestCount - 1])) {
+            $response = $this->wildcardResponses[$this->requestCount - 1];
+
+            if ($response instanceof ResponseInterface) {
+                $this->counter[$key] ??= 0;
+                $this->counter[$key] = (int) $this->counter[$key] + 1;
+                $this->history[]     = ['request' => $request, 'response' => $response, 'count' => $this->counter[$key], 'when' => time()];
+
+                return $response;
+            }
+        }
 
         if (isset($this->responses[$key])) {
             $response = $this->responses[$key];
@@ -85,7 +100,7 @@ final class Client implements ClientContract
                 $this->counter[$key] ??= 0;
 
                 if (isset($this->limits[$key]) && $this->counter[$key] >= $this->limits[$key]) {
-                    throw new Exception('Exceeded request limit of ' . (string) $this->limits[$key] . ' for ' . $key);
+                    throw new ClientRequestLimitSurpassed($key, $this->limits[$key]);
                 }
 
                 $this->counter[$key] = (int) $this->counter[$key] + 1;
@@ -99,14 +114,13 @@ final class Client implements ClientContract
             return $this->fallbackResponse;
         }
 
-        throw new Exception('No response found for ' . $key);
+        if ([] === $this->wildcardResponses && [] === $this->responses) {
+            throw new ClientQueueEmpty($key);
+        }
+
+        throw new ClientRequestMissed($key);
     }
 
-    /**
-     * @param array<int,RequestInterface> $requests
-     *
-     * @return array<int,ResponseInterface>
-     */
     public function sendRequests(array $requests): array
     {
         $responses = [];

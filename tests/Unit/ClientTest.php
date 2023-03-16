@@ -4,6 +4,9 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
 use PsrMock\Psr18\Client;
+use PsrMock\Psr18\Exceptions\ClientQueueEmpty;
+use PsrMock\Psr18\Exceptions\ClientRequestLimitSurpassed;
+use PsrMock\Psr18\Exceptions\ClientTotalRequestLimitSurpassed;
 
 it('can return a fallback response', function () {
     $client = new Client();
@@ -110,7 +113,7 @@ it('throws an exception if no response is found', function () {
     $request = $this->createMock(RequestInterface::class);
 
     $client->sendRequest($request);
-})->throws(\Exception::class, 'No response found for');
+})->throws(ClientQueueEmpty::class, ClientQueueEmpty::STRING_QUEUE_EMPTY);
 
 it('throws an exception if request count exceeds setRequestLimit()', function () {
     $fallback = $this->createMock(ResponseInterface::class);
@@ -123,7 +126,7 @@ it('throws an exception if request count exceeds setRequestLimit()', function ()
         $this->createMock(RequestInterface::class),
         $this->createMock(RequestInterface::class)
     ]);
-})->throws(\Exception::class, 'Exceeded session request limit');
+})->throws(ClientTotalRequestLimitSurpassed::class, sprintf(ClientTotalRequestLimitSurpassed::STRING_REACHED_WITH_LIMIT, 1, 'GET https://example'));
 
 it('throws an exception if request count exceeds limit set with addResponse()', function () {
     $client = new Client();
@@ -143,7 +146,7 @@ it('throws an exception if request count exceeds limit set with addResponse()', 
         $request,
         $request
     ]);
-})->throws(\Exception::class, 'Exceeded request limit');
+})->throws(ClientRequestLimitSurpassed::class, sprintf(ClientRequestLimitSurpassed::STRING_REQUEST_URI_WITH_LIMIT, 1, 'GET https://example'));
 
 it('throws an exception if request count exceeds limit set with addResponseByRequest()', function () {
     $client = new Client();
@@ -163,7 +166,7 @@ it('throws an exception if request count exceeds limit set with addResponseByReq
         $request,
         $request
     ]);
-})->throws(\Exception::class, 'Exceeded request limit');
+})->throws(ClientRequestLimitSurpassed::class, sprintf(ClientRequestLimitSurpassed::STRING_REQUEST_URI_WITH_LIMIT, 1, 'GET https://example'));
 
 it('can send a request and record the exchange', function () {
     $client = new Client();
