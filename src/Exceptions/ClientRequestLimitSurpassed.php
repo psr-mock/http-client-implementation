@@ -10,9 +10,21 @@ use function is_string;
 
 final class ClientRequestLimitSurpassed extends Exception implements ClientExceptionInterface
 {
+    /**
+     * @var string
+     */
     public const STRING_REQUEST_URI_WITH_LIMIT = 'The request limit of %d was surpassed for the request: %s';
+    /**
+     * @var string
+     */
     public const STRING_REQUEST_LIMIT = 'The request limit was surpassed for the request: %s';
+    /**
+     * @var string
+     */
     public const STRING_REQUEST_LIMIT_WITHOUT_URI = 'The request limit of %d was surpassed';
+    /**
+     * @var string
+     */
     public const STRING_REQUEST_LIMIT_WITHOUT_URI_AND_LIMIT = 'The request limit was surpassed';
 
     public function __construct(
@@ -20,7 +32,7 @@ final class ClientRequestLimitSurpassed extends Exception implements ClientExcep
         ?int $limit = null,
     ) {
         if (is_string($requestMethodAndUri) && '' !== trim($requestMethodAndUri)) {
-            if ($limit) {
+            if (\is_int($limit)) {
                 parent::__construct(sprintf(self::STRING_REQUEST_URI_WITH_LIMIT, $limit, trim($requestMethodAndUri)));
                 return;
             }
@@ -29,7 +41,7 @@ final class ClientRequestLimitSurpassed extends Exception implements ClientExcep
             return;
         }
 
-        if ($limit) {
+        if (\is_int($limit)) {
             parent::__construct(sprintf(self::STRING_REQUEST_LIMIT_WITHOUT_URI, $limit));
             return;
         }

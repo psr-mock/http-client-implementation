@@ -12,6 +12,22 @@ use PsrMock\Psr18\Exceptions\{ClientQueueEmpty, ClientRequestLimitSurpassed, Cli
 final class Client implements ClientContract
 {
     /**
+     * @var array<string,int>
+     */
+    private array $counter = [];
+
+    /**
+     * @var array<int,array{request:RequestInterface,response:ResponseInterface,count:int,when:int}>
+     */
+    private array $history = [];
+
+    /**
+     * @var array<string,int>
+     */
+    private array $limits     = [];
+    private int $requestCount = 0;
+
+    /**
      * @param array<string,ResponseInterface> $responses
      * @param array<int,ResponseInterface>    $wildcardResponses
      * @param null|ResponseInterface          $fallbackResponse
@@ -141,20 +157,4 @@ final class Client implements ClientContract
     {
         $this->requestLimit = $limit;
     }
-
-    /**
-     * @var array<string,int>
-     */
-    private array $counter = [];
-
-    /**
-     * @var array<int,array{request:RequestInterface,response:ResponseInterface,count:int,when:int}>
-     */
-    private array $history = [];
-
-    /**
-     * @var array<string,int>
-     */
-    private array $limits     = [];
-    private int $requestCount = 0;
 }

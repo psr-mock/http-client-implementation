@@ -10,7 +10,13 @@ use function is_string;
 
 final class ClientQueueEmpty extends Exception implements ClientExceptionInterface
 {
+    /**
+     * @var string
+     */
     public const STRING_QUEUE_EMPTY_FOR_URI = 'The response queue is empty. Unable to resolve request for %s';
+    /**
+     * @var string
+     */
     public const STRING_QUEUE_EMPTY = 'The response queue is empty';
 
     public function __construct(
