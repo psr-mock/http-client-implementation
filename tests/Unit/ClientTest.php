@@ -6,6 +6,7 @@ use Psr\Http\Message\UriInterface;
 use PsrMock\Psr18\Client;
 use PsrMock\Psr18\Exceptions\ClientQueueEmpty;
 use PsrMock\Psr18\Exceptions\ClientRequestLimitSurpassed;
+use PsrMock\Psr18\Exceptions\ClientRequestMissed;
 use PsrMock\Psr18\Exceptions\ClientTotalRequestLimitSurpassed;
 
 it('can return a fallback response', function () {
@@ -177,6 +178,21 @@ it('throws an exception if request count exceeds limit set with addResponseByReq
     ]);
 })->throws(ClientRequestLimitSurpassed::class, sprintf(ClientRequestLimitSurpassed::STRING_REQUEST_URI_WITH_LIMIT, 1, 'GET https://example'));
 
+it('throws an exception if there are no matches and no fallbacks or wildcards configured', function () {
+    $client = new Client();
+
+    $requestUri = Mockery::mock(UriInterface::class);
+    $requestUri->shouldReceive('__toString')->andReturn('https://example');
+
+    $request = Mockery::mock(RequestInterface::class);
+    $request->shouldReceive('getMethod')->andReturn('GET');
+    $request->shouldReceive('getUri')->andReturn($requestUri);
+
+    $client->addResponse('POST', 'https://example', Mockery::mock(ResponseInterface::class));
+
+    $client->sendRequest($request);
+})->throws(ClientRequestMissed::class, sprintf(ClientRequestMissed::STRING_QUEUE_MISSED_EMPTY_FOR_URI, 'GET https://example'));
+
 it('can send a request and record the exchange', function () {
     $client = new Client();
 
@@ -207,4 +223,76 @@ it('can send a request and record the exchange', function () {
         ->toHaveKey('request', $request)
         ->toHaveKey('response', $response)
         ->toHaveKey('count', 1);
+});
+
+it('will queue and return wildcard responses', function () {
+    $client = new Client();
+
+    $uri1 = Mockery::mock(UriInterface::class);
+    $uri1->shouldReceive('__toString')->andReturn('https://example');
+
+    $uri2 = Mockery::mock(UriInterface::class);
+    $uri2->shouldReceive('__toString')->andReturn('https://somewhere');
+
+    $request1 = Mockery::mock(RequestInterface::class);
+    $request1->shouldReceive('getMethod')->andReturn('GET');
+    $request1->shouldReceive('getUri')->andReturn($uri1);
+
+    $request2 = Mockery::mock(RequestInterface::class);
+    $request2->shouldReceive('getMethod')->andReturn('POST');
+    $request2->shouldReceive('getUri')->andReturn($uri2);
+
+    $request3 = Mockery::mock(RequestInterface::class);
+    $request3->shouldReceive('getMethod')->andReturn('PATCH');
+    $request3->shouldReceive('getUri')->andReturn($uri1);
+
+    $request4 = Mockery::mock(RequestInterface::class);
+    $request4->shouldReceive('getMethod')->andReturn('PUT');
+    $request4->shouldReceive('getUri')->andReturn($uri2);
+
+    $wildcard1 = Mockery::mock(ResponseInterface::class);
+    $wildcard2 = Mockery::mock(ResponseInterface::class);
+    $wildcard3 = Mockery::mock(ResponseInterface::class);
+
+    $fallback = Mockery::mock(ResponseInterface::class);
+    $client->setFallbackResponse($fallback);
+
+    expect($client->getWildcardResponses())
+        ->toBeArray()
+        ->toHaveCount(0);
+
+    $client->addResponseWildcard($wildcard1);
+    $client->addResponseWildcard($wildcard2);
+    $client->addResponseWildcard($wildcard3);
+
+    expect($client->getWildcardResponses())
+        ->toBeArray()
+        ->toHaveCount(3);
+
+    expect($client->getWildcardResponses()[0])
+        ->toBe($wildcard1);
+
+    expect($client->getWildcardResponses()[1])
+        ->toBe($wildcard2);
+
+    expect($client->getWildcardResponses()[2])
+        ->toBe($wildcard3);
+
+    $returnedResponses = $client->sendRequests([$request1, $request2, $request3, $request4]);
+
+    expect($returnedResponses)
+        ->toBeArray()
+        ->toHaveCount(4);
+
+    expect($returnedResponses[0])
+        ->toBe($wildcard1);
+
+    expect($returnedResponses[1])
+        ->toBe($wildcard2);
+
+    expect($returnedResponses[2])
+        ->toBe($wildcard3);
+
+    expect($returnedResponses[3])
+        ->toBe($fallback);
 });
