@@ -11,8 +11,11 @@ use PsrMock\Psr18\Exceptions\ClientTotalRequestLimitSurpassed;
 it('can return a fallback response', function () {
     $client = new Client();
 
-    $request = $this->createMock(RequestInterface::class);
-    $fallback = $this->createMock(ResponseInterface::class);
+    $request = Mockery::mock(RequestInterface::class);
+    $request->shouldReceive('getMethod')->andReturn('GET')->shouldReceive('getUri')->andReturn('https://example.com');
+
+    $fallback = Mockery::mock(ResponseInterface::class);
+    $fallback->shouldReceive('getStatusCode')->andReturn(200);
 
     $client->setFallbackResponse($fallback);
 
@@ -27,32 +30,36 @@ it('can return a fallback response', function () {
 it('can return a fallback response after the response queue empties', function () {
     $client = new Client();
 
-    $uri1 = mock(UriInterface::class)->expect(
-        __toString: fn () => 'https://example'
-    );
+    $uri1 = Mockery::mock(UriInterface::class);
+    $uri1->shouldReceive('__toString')->andReturn('https://example');
 
-    $uri2 = mock(UriInterface::class)->expect(
-        __toString: fn () => 'https://somewhere'
-    );
+    $uri2 = Mockery::mock(UriInterface::class);
+    $uri2->shouldReceive('__toString')->andReturn('https://somewhere');
 
-    $fallback = $this->createMock(ResponseInterface::class);
+    $request1 = Mockery::mock(RequestInterface::class);
+    $request1->shouldReceive('getMethod')->andReturn('GET');
+    $request1->shouldReceive('getUri')->andReturn($uri1);
 
-    $request1 = mock(RequestInterface::class)->expect(
-        getMethod: fn () => 'GET',
-        getUri: fn () => $uri1
-    );
+    $request2 = Mockery::mock(RequestInterface::class);
+    $request2->shouldReceive('getMethod')->andReturn('POST');
+    $request2->shouldReceive('getUri')->andReturn($uri2);
 
-    $request2 = mock(RequestInterface::class)->expect(
-        getMethod: fn () => 'POST',
-        getUri: fn () => $uri2
-    );
+    $request3 = Mockery::mock(RequestInterface::class);
+    $request3->shouldReceive('getMethod')->andReturn('PATCH');
+    $request3->shouldReceive('getUri')->andReturn($uri1);
+
+    $request4 = Mockery::mock(RequestInterface::class);
+    $request4->shouldReceive('getMethod')->andReturn('PUT');
+    $request4->shouldReceive('getUri')->andReturn($uri2);
+
+    $fallback = Mockery::mock(ResponseInterface::class);
 
     $client->setFallbackResponse($fallback);
 
-    $client->addResponse('POST', $uri2, $this->createMock(ResponseInterface::class));
-    $client->addResponse('GET', $uri1, $this->createMock(ResponseInterface::class));
+    $client->addResponse('GET', $uri1, Mockery::mock(ResponseInterface::class));
+    $client->addResponse('POST', $uri2, Mockery::mock(ResponseInterface::class));
 
-    expect($client->sendRequests([$request1, $request2, $this->createMock(RequestInterface::class), $this->createMock(RequestInterface::class)]))
+    expect($client->sendRequests([$request1, $request2, $request3, $request4]))
         ->toBeArray()
         ->toHaveCount(4);
 });
@@ -60,7 +67,7 @@ it('can return a fallback response after the response queue empties', function (
 it('can add and get responses', function () {
     $client = new Client();
 
-    $response = $this->createMock(ResponseInterface::class);
+    $response = Mockery::mock(ResponseInterface::class);
 
     $client->addResponse('GET', 'https://example.com', $response);
 
@@ -74,16 +81,11 @@ it('can add and get responses', function () {
 it('can add and get responses using HTTP Request message', function () {
     $client = new Client();
 
-    $uri = mock(UriInterface::class)->expect(
-        __toString: fn () => 'https://example'
-    );
-
-    $request = mock(RequestInterface::class)->expect(
-        getMethod: fn () => 'GET',
-        getUri: fn () => $uri
-    );
-
-    $response = $this->createMock(ResponseInterface::class);
+    $uri = Mockery::mock(UriInterface::class);
+    $uri->shouldReceive('__toString')->andReturn('https://example.com');
+    $request = Mockery::mock(RequestInterface::class);
+    $request->shouldReceive('getMethod')->andReturn('GET')->shouldReceive('getUri')->andReturn($uri);
+    $response = Mockery::mock(ResponseInterface::class);
 
     $client->addResponseByRequest($request, $response);
 
@@ -94,8 +96,8 @@ it('can add and get responses using HTTP Request message', function () {
 it('can queue and get responses', function () {
     $client = new Client();
 
-    $response1 = $this->createMock(ResponseInterface::class);
-    $response2 = $this->createMock(ResponseInterface::class);
+    $response1 = Mockery::mock(ResponseInterface::class);
+    $response2 = Mockery::mock(ResponseInterface::class);
 
     $client->addResponse('GET', 'https://somewhere', $response1);
     $client->addResponse('GET', 'https://elsewhere', $response2);
@@ -110,37 +112,47 @@ it('can queue and get responses', function () {
 it('throws an exception if no response is found', function () {
     $client = new Client();
 
-    $request = $this->createMock(RequestInterface::class);
+    $request = Mockery::mock(RequestInterface::class);
+    $request->shouldReceive('getMethod')->andReturn('GET');
+    $request->shouldReceive('getUri')->andReturn('https://example.com');
 
     $client->sendRequest($request);
 })->throws(ClientQueueEmpty::class, ClientQueueEmpty::STRING_QUEUE_EMPTY);
 
 it('throws an exception if request count exceeds setRequestLimit()', function () {
-    $fallback = $this->createMock(ResponseInterface::class);
+    $fallback = Mockery::mock(ResponseInterface::class);
 
     $client = new Client();
     $client->setRequestLimit(1);
     $client->setFallbackResponse($fallback);
 
-    $client->sendRequests([
-        $this->createMock(RequestInterface::class),
-        $this->createMock(RequestInterface::class)
-    ]);
+    $uri1 = Mockery::mock(UriInterface::class);
+    $uri1->shouldReceive('__toString')->andReturn('https://example');
+
+    $uri2 = Mockery::mock(UriInterface::class);
+    $uri2->shouldReceive('__toString')->andReturn('https://somewhere');
+
+    $request1 = Mockery::mock(RequestInterface::class);
+    $request1->shouldReceive('getMethod')->andReturn('GET');
+    $request1->shouldReceive('getUri')->andReturn($uri1);
+
+    $request2 = Mockery::mock(RequestInterface::class);
+    $request2->shouldReceive('getMethod')->andReturn('POST');
+    $request2->shouldReceive('getUri')->andReturn($uri2);
+
+    $client->sendRequests([$request1, $request2]);
 })->throws(ClientTotalRequestLimitSurpassed::class, sprintf(ClientTotalRequestLimitSurpassed::STRING_REACHED_WITH_LIMIT, 1, 'GET https://example'));
 
 it('throws an exception if request count exceeds limit set with addResponse()', function () {
     $client = new Client();
 
-    $client->addResponse('GET', 'https://example', $this->createMock(ResponseInterface::class), 1);
+    $client->addResponse('GET', 'https://example', Mockery::mock(ResponseInterface::class), 1);
 
-    $requestUri = mock(UriInterface::class)->expect(
-        __toString: fn () => 'https://example'
-    );
+    $requestUri = Mockery::mock(UriInterface::class);
+    $requestUri->shouldReceive('__toString')->andReturn('https://example');
 
-    $request = mock(RequestInterface::class)->expect(
-        getMethod: fn () => 'GET',
-        getUri: fn () => $requestUri
-    );
+    $request = Mockery::mock(RequestInterface::class);
+    $request->shouldReceive('getMethod')->andReturn('GET')->shouldReceive('getUri')->andReturn($requestUri);
 
     $client->sendRequests([
         $request,
@@ -151,16 +163,13 @@ it('throws an exception if request count exceeds limit set with addResponse()', 
 it('throws an exception if request count exceeds limit set with addResponseByRequest()', function () {
     $client = new Client();
 
-    $requestUri = mock(UriInterface::class)->expect(
-        __toString: fn () => 'https://example'
-    );
+    $requestUri = Mockery::mock(UriInterface::class);
+    $requestUri->shouldReceive('__toString')->andReturn('https://example');
 
-    $request = mock(RequestInterface::class)->expect(
-        getMethod: fn () => 'GET',
-        getUri: fn () => $requestUri
-    );
+    $request = Mockery::mock(RequestInterface::class);
+    $request->shouldReceive('getMethod')->andReturn('GET')->shouldReceive('getUri')->andReturn($requestUri);
 
-    $client->addResponseByRequest($request, $this->createMock(ResponseInterface::class), 1);
+    $client->addResponseByRequest($request, Mockery::mock(ResponseInterface::class), 1);
 
     $client->sendRequests([
         $request,
@@ -171,11 +180,9 @@ it('throws an exception if request count exceeds limit set with addResponseByReq
 it('can send a request and record the exchange', function () {
     $client = new Client();
 
-    $response = $this->createMock(ResponseInterface::class);
-    $request = mock(RequestInterface::class)->expect(
-        getMethod: fn () => 'GET',
-        getUri: fn () => 'https://example',
-    );
+    $response = Mockery::mock(ResponseInterface::class);
+    $request = Mockery::mock(RequestInterface::class);
+    $request->shouldReceive('getMethod')->andReturn('GET')->shouldReceive('getUri')->andReturn('https://example');
 
     $timeline = $client->getTimeline();
 
