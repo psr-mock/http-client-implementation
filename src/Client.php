@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace PsrMock\Psr18;
 
-use Exception;
 use Psr\Http\Message\{RequestInterface, ResponseInterface, UriInterface};
 use PsrMock\Psr18\Contracts\ClientContract;
 use PsrMock\Psr18\Exceptions\{ClientQueueEmpty, ClientRequestLimitSurpassed, ClientRequestMissed, ClientTotalRequestLimitSurpassed};
