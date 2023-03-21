@@ -13,11 +13,12 @@ final class ClientQueueEmpty extends Exception implements ClientExceptionInterfa
     /**
      * @var string
      */
-    public const STRING_QUEUE_EMPTY_FOR_URI = 'The response queue is empty. Unable to resolve request for %s';
+    public const STRING_QUEUE_EMPTY = 'The response queue is empty';
+
     /**
      * @var string
      */
-    public const STRING_QUEUE_EMPTY = 'The response queue is empty';
+    public const STRING_QUEUE_EMPTY_FOR_URI = 'The response queue is empty. Unable to resolve request for %s';
 
     public function __construct(
         ?string $requestMethodAndUri = null,

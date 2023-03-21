@@ -6,24 +6,26 @@ namespace PsrMock\Psr18\Exceptions;
 
 use Exception;
 use Psr\Http\Client\ClientExceptionInterface;
-use function is_string;
+use function is_int;
 
 final class ClientTotalRequestLimitSurpassed extends Exception implements ClientExceptionInterface
 {
     /**
      * @var string
      */
-    public const STRING_REACHED_WITH_LIMIT = 'The request limit of %d was surpassed';
+    public const STRING_REACHED = 'The request limit was surpassed';
+
     /**
      * @var string
      */
-    public const STRING_REACHED = 'The request limit was surpassed';
+    public const STRING_REACHED_WITH_LIMIT = 'The request limit of %d was surpassed';
 
     public function __construct(
         ?int $limit = null,
     ) {
-        if (\is_int($limit)) {
+        if (is_int($limit)) {
             parent::__construct(sprintf(self::STRING_REACHED_WITH_LIMIT, $limit));
+
             return;
         }
 
