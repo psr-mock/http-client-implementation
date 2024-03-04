@@ -4,7 +4,7 @@ Lightweight PSR-18 HTTP Client mocking implementation tailored to simplify testi
 
 ## Requirements
 
--   PHP 8.0+
+-   PHP 8.1+
 
 ## Installation
 
